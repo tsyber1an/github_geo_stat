@@ -1,0 +1,236 @@
+<html>
+<head>
+	<meta charset='utf-8'>
+	<title></title>
+
+	<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+	<script type="text/javascript">
+		$(function() {
+			$('#get_stat').click(function(e){
+				e.preventDefault();
+				var username = $('#username').val();
+				if(username !== ''){
+					resetData();
+					getConnections(username);
+				}	
+
+				return false;
+			});
+
+			$('.get_stat').live('click', function (e) {
+				e.preventDefault();
+
+				var username = $(this).html();
+				$('#username').val(username);
+
+				resetData();
+				getConnections(username);
+				return false;		
+			});
+
+			$('#show_other_followers, #show_other_following').live('click', function(e){
+				e.preventDefault();
+				var link = $(this);
+
+				link.parent().parent().find('div').each(function(){
+					$(this).show()
+					link.hide();
+				});
+				
+				return false;	
+			});
+
+			var SETTINGS = {
+				show_followers_limit: 3
+			}
+
+			// FOR FUTURE VERSION
+			var countries = [
+				{name: 'unknown', aliaes: [], users:[], cities: []} // PATTERN
+			];
+
+			var PATTERNS = {
+				location: function(str){					
+					var splitted = str.split(',');
+
+					if(splitted.length == 1)
+						return {country:str.toLowerCase()};
+
+					return {city: splitted[0], country: $.trim(splitted[1].toLowerCase())};
+				}
+			};
+
+			var resetData = function(){
+				countries = [
+					{name: 'unknown', aliaes: [], users:[], cities: []} // PATTERN
+				];				
+			};
+
+			var getConnections = function(username) {
+				getFollowers(username);
+				getFollowing(username);
+			}
+
+			var getFollowers = function(username){				
+				$.ajax({
+					url: 'https://api.github.com/users/'+username+'/followers?per_page=100',
+					type: 'GET',
+					contentType: 'application/json',
+					dataType: 'jsonp',	
+					beforeSend: function() {
+						$('#followers').hide();
+						$('#loading_followers').show();			
+						
+					},
+					success: function(d, s, xhr){
+						$('#followers').show();
+						$('#loading_followers').hide();
+						var users = d.data;
+						var i = 0, n = users.length, output = '', full_user_info = null, 
+							user = null;
+
+						$('#followers_count').html(n);	
+						for(;i<n;i++){
+							user = users[i];				
+							display = i > SETTINGS.show_followers_limit-1 ? 'none':'block';		
+							if(i == SETTINGS.show_followers_limit){
+								output += "<div><a href='#' id='show_other_followers'>(show other)</a></div>"
+							}
+							output += "<div style='display:"+display+"'><a href='#' class='get_stat'>"+user['login']+"</a> from <span></span></div>";
+						}
+
+						$('#followers').html(output);
+
+						for(i=0;i<n;i++){
+							user = users[i];
+							var islastUser = i+1 == n;
+							getUserInfoLocation(user['url'], i+1, user['login'], islastUser, 'followers');
+						}
+					}
+				});
+			};
+
+			var getFollowing = function(username) {
+				$.ajax({
+					url: 'https://api.github.com/users/'+username+'/following?per_page=100',
+					type: 'GET',
+					contentType: 'application/json',
+					dataType: 'jsonp',
+					beforeSend: function(){
+						$('#following').hide();
+						$('#loading_following').show();		
+					},					
+					success: function(d, s, xhr){
+						$('#following').show();
+						$('#loading_following').hide();
+						var users = d.data;
+						var i = 0, n = users.length, output = '', full_user_info = null, 
+							user = null;
+
+						$('#following_count').html(n);	
+						for(;i<n;i++){
+							user = users[i];				
+							display = i > SETTINGS.show_followers_limit-1 ? 'none':'block';		
+							if(i == SETTINGS.show_followers_limit){
+								output += "<div><a href='#' id='show_other_following'>(show other)</a></div>"
+							}
+							output += "<div style='display:"+display+"'><a href='#' class='get_stat'>"+user['login']+"</a> from <span></span></div>";
+						}
+
+						$('#following').html(output);
+
+						for(i=0;i<n;i++){
+							user = users[i];
+							var islastUser = i+1 == n;
+							getUserInfoLocation(user['url'], i+1, user['login'], islastUser, 'following');
+						}
+					}
+				});					
+			};
+
+
+			var	getUserInfoLocation = function(url, i, login, islastUser, target){
+				$.ajax({
+					url: url,
+					type: 'GET',
+					contentType: 'application/json',
+					dataType: 'jsonp',
+					success: function(d, s, xhr){
+						var user_info = d.data;
+						var loc = user_info['location'];
+						var loc_html = $("#"+target+" div:nth-child("+i+") span");
+						var location = loc == '' || loc == null || loc == 'undefined' ? 'unknown' : loc;
+						loc_html.html(location);
+						var j, n=countries.length, countryNotFound = true;
+						for(j=0;j<n;j++){
+							var country = PATTERNS.location(location).country;
+							
+							if( countries[j].name === country ){
+								countries[j].users.push(login);
+
+								var city =  PATTERNS.location(location).city;
+								if(city !== 'undefined' && countries[j].cities.indexOf(city) != -1){
+									countries[j].cities.push(city);
+								}	
+
+								countryNotFound = false;
+								break;
+							}
+						}
+
+						// console.log('add new country', country)
+						if( countryNotFound ){							
+
+							var _cities = [];
+							var city =  PATTERNS.location(location).city;
+							if(city != 'undefined')
+								_cities.push(city);
+
+							countries.push({name: country, aliaes: [], users: [login], cities: _cities})
+						}
+
+						if( islastUser ){
+							var stat = '', n = countries.length;
+
+							stat += "<b>"+countries.length+" countries</b>"
+							stat += "<br/>"
+							for(j=0;j<n;j++){
+								stat += "<div>"
+								stat += countries[j].name + " got " + countries[j].users.length + " users"
+								stat += "</div>"
+							}
+							$('#total').html(stat);
+						}
+					}					
+					
+				})
+				return;				
+			};
+
+
+		})
+	</script>
+
+</head>
+<body> 	
+	<h1>Followers stat</h1>
+
+	<input id="username" type='text' placeholder='Enter you github username'>&nbsp;<a href='#' id='get_stat'>get stat</a></br>
+
+	<div id='stat'>
+		<h4>Followers (<span id="followers_count"></span>)</h4>
+		<div id="loading_followers" style="display: none">Loading ...</div>
+		<div id="followers" style='display: none'>			
+		</div>
+		<br/>
+		<h4>Following (<span id="following_count"></span>)</h4>
+		<div id="loading_following" style="display: none">Loading ...</div>
+		<div id="following" style='display: none'>
+		</div>
+
+		<br/>
+		<h4>Geo:</h4>
+		<div id="total"></div>
+	</div>
+</body>
+</html>
