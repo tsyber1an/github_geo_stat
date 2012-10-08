@@ -2,5 +2,5 @@ require 'rubygems'
 require 'sinatra'
 
 get '/' do
-  "Hello from Sinatra on Heroku!"
+  File.read(File.join('public', 'index.html'))
 end
