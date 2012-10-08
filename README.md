@@ -1,7 +1,7 @@
 Github geo stats
 ================
 
-I craete this application to get you know where your github followers and followings are located.
+This application as aim to get you know where your github followers and followings are located.
 
 Also, this is simple application demostrating Github API usage (using [REST](http://ru.wikipedia.org/wiki/REST) and [Ruby interface](http://peter-murach.github.com/github))
 
