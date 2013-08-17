@@ -51,74 +51,64 @@ $ ->
     getFollowers username
     getFollowing username
 
-  getFollowers = (username) ->
-    $.ajax
-      url: "https://api.github.com/users/" + username + "/followers?per_page=100"
-      type: "GET"
-      contentType: "application/json"
-      dataType: "jsonp"
-      beforeSend: ->
-        $("#followers").hide()
-        $("#loading_followers").show()
+  api = new Api('https://api.github.com')  
 
-      success: (d, s, xhr) ->
-        $("#followers").show()
-        $("#loading_followers").hide()
-        users = d.data
-        i = 0
-        n = users.length
-        output = ""
-        full_user_info = null
-        user = null
-        $("#followers_count").html n
-        while i < n
-          user = users[i]
-          display = (if i > SETTINGS.show_followers_limit - 1 then "none" else "block")
-          output += "<div><a href='#' id='show_other_followers'>(show other)</a></div>"  if i is SETTINGS.show_followers_limit
-          output += "<div style='display:" + display + "'><a href='#' class='get_stat'>" + user["login"] + "</a> from <span></span></div>"
-          i++
-        $("#followers").html output
-        i = 0
-        while i < n
-          user = users[i]
-          islastUser = i + 1 is n
-          getUserInfoLocation user["url"], i + 1, user["login"], islastUser, "followers"
-          i++
+  getFollowers = (username) ->
+    $("#followers").hide()
+    $("#loading_followers").show()
+
+    api.get "users/#{username}/followers?per_page=100", (users)->
+      $("#followers").show()
+      $("#loading_followers").hide()
+
+      i = 0
+      n = users.length
+      output = ""
+      full_user_info = null
+      user = null
+      $("#followers_count").html n
+      while i < n
+        user = users[i]
+        display = (if i > SETTINGS.show_followers_limit - 1 then "none" else "block")
+        output += "<div><a href='#' id='show_other_followers'>(show other)</a></div>"  if i is SETTINGS.show_followers_limit
+        output += "<div style='display:#{display}'><a href='#' class='get_stat'>#{user['login']}</a> from <span></span></div>"
+        i++
+      $("#followers").html output
+      i = 0
+      while i < n
+        user = users[i]
+        islastUser = i + 1 is n
+        getUserInfoLocation user["url"], i + 1, user["login"], islastUser, "followers"
+        i++
 
 
   getFollowing = (username) ->
-    $.ajax
-      url: "https://api.github.com/users/" + username + "/following?per_page=100"
-      type: "GET"
-      contentType: "application/json"
-      dataType: "jsonp"
-      beforeSend: ->
-        $("#following").hide()
-        $("#loading_following").show()
+    $("#following").hide()
+    $("#loading_following").show()   
 
-      success: (d, s, xhr) ->
-        $("#following").show()
-        $("#loading_following").hide()
-        users = d.data
-        i = 0
-        n = users.length
-        output = ""
-        full_user_info = null
-        user = null
-        $("#following_count").html n
-        while i < n
-          user = users[i]
-          display = (if i > SETTINGS.show_followers_limit - 1 then "none" else "block")
-          output += "<div><a href='#' id='show_other_following'>(show other)</a></div>"  if i is SETTINGS.show_followers_limit
-          output += "<div style='display:" + display + "'><a href='#' class='get_stat'>" + user["login"] + "</a> from <span></span></div>"
-          i++
-        $("#following").html output
-        i = 0
-        while i < n
-          user = users[i]
-          islastUser = i + 1 is n
-          getUserInfoLocation user["url"], i + 1, user["login"], islastUser, "following"
-          i++
+    api.get "users/#{username}/followers?per_page=100", (users)->
+      $("#following").show()
+      $("#loading_following").hide()
+
+      i = 0
+      n = users.length
+      output = ""
+      full_user_info = null
+      user = null
+      $("#following_count").html n
+      while i < n
+        user = users[i]
+        display = (if i > SETTINGS.show_followers_limit - 1 then "none" else "block")
+        output += "<div><a href='#' id='show_other_following'>(show other)</a></div>"  if i is SETTINGS.show_followers_limit
+        output += "<div style='display:" + display + "'><a href='#' class='get_stat'>" + user["login"] + "</a> from <span></span></div>"
+        i++
+      $("#following").html output
+      i = 0
+      while i < n
+        user = users[i]
+        islastUser = i + 1 is n
+        getUserInfoLocation user["url"], i + 1, user["login"], islastUser, "following"
+        i++
 
 
   getUserInfoLocation = (url, i, login, islastUser, target) ->
